@@ -2,14 +2,12 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const PG = require('../models/PG');
+const PG = require('../models/Pg');
 const Tenant = require('../models/Tenant');
 router.get('/test', (req, res) => {
   res.send('✅ AUTH ROUTER IS WORKING');
 });
 
-
-// Generate unique PG Code
 function generatePGCode(pgName) {
   const prefix = pgName.substring(0, 3).toUpperCase();
   const random = Math.floor(1000 + Math.random() * 9000);
@@ -20,17 +18,10 @@ function generatePGCode(pgName) {
 // @desc    Register PG Owner
 // @access  Public
 
-// router.post('/register/owner1', (req, res) => {
-//   //console.log("🔥 REGISTER ROUTE HIT");
-//   return res.json({
-//     success: true,
-//     message: "REGISTER ROUTE WORKING"
-//   });
-// });
 
 router.post('/register/owner', async (req, res) => {
   try {
-    console.log("🔥 REGISTER ROUTE HIT");
+   // console.log("____REGISTER ROUTE HIT______");
     const { pgName, username, password, ownerName, ownerPhone, ownerEmail, address, totalRooms } = req.body;
     let pg = await PG.findOne({ username });
     if (pg) {
@@ -164,28 +155,24 @@ router.post('/login', async (req, res) => {
           role: 'owner',
         },
       });
-    } else if (role === 'tenant') {
+    } else if (role==='tenant') {
       // Tenant login with phone
       user = await Tenant.findOne({ phone: username }).populate('pgId');
       if (!user) {
         return res.status(400).json({ message: 'Invalid credentials' });
       }
-
       // Check password
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
         return res.status(400).json({ message: 'Invalid credentials' });
       }
-
       payload = {
         userId: user._id,
         role: 'tenant',
         pgId: user.pgId._id,
         room: user.room,
       };
-
       const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
-
       return res.json({
         success: true,
         token,
